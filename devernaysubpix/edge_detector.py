@@ -4,12 +4,25 @@ from bidict import bidict
 
 
 def image_gradient(image, sigma):
+    image = np.asfarray(image)
     gx = filters.gaussian_filter(image, sigma, order=[0, 1])
     gy = filters.gaussian_filter(image, sigma, order=[1, 0])
     return gx, gy
 
 
-def compute_edge_points(partial_gradients):
+class CurvePoint(object):
+    __slots__ = ['x', 'y', 'valid']
+
+    def __init__(self, x, y, valid):
+        self.x = x
+        self.y = y
+        self.valid = valid
+
+    def __hash__(self):
+        return hash((self.x, self.y))
+
+
+def compute_edge_points(partial_gradients, min_magnitude=0):
     gx, gy = partial_gradients
     rows, cols = gx.shape
     edges = []
@@ -21,6 +34,9 @@ def compute_edge_points(partial_gradients):
         for x in range(1, cols - 1):
 
             center_mag = mag(y, x)
+            if center_mag < min_magnitude:
+                continue
+
             left_mag = mag(y, x - 1)
             right_mag = mag(y, x + 1)
             top_mag = mag(y - 1, x)
@@ -38,7 +54,7 @@ def compute_edge_points(partial_gradients):
                 lamda = (a - c) / (2 * (a - 2 * b + c))
                 ex = x + lamda * theta_x
                 ey = y + lamda * theta_y
-                edges.append((ex, ey))
+                edges.append(CurvePoint(ex, ey, valid=False))
     return np.asarray(edges)
 
 
@@ -46,105 +62,81 @@ def chain_edge_points(edges, g):
     gx, gy = g
 
     def neighborhood(p, max_dist):
-        px, py = p
+        px, py = p.x, p.y
         for e in edges:
-            ex, ey = e
+            ex, ey = e.x, e.y
             if abs(ex - px) <= max_dist and abs(ey - py) <= max_dist:
                 yield e
 
     def gval(p):
-        px, py = [int(x) for x in p]
+        px, py = int(p.x), int(p.y)
         return [gx[py, px], gy[py, px]]
 
     def envec(e, n):
-        return np.asanyarray(n) - np.asanyarray(e)
+        return np.asanyarray([n.x, n.y]) - np.asanyarray([e.x, e.y])
 
     def perp(v):
         x, y = gval(e)
         return np.asanyarray([y, -x])
 
     def dist(a, b):
+        a = [a.x, a.y]
+        b = [b.x, b.y]
         return np.hypot(*(np.subtract(b, a)))
-
-    def h(float_array):
-        return tuple(x for x in float_array)
 
     links = bidict()
     for e in edges:
-        nf = [n for n in neighborhood(e, 2) if
-              np.dot(gval(e), gval(n)) > 0 and np.dot(envec(e, n), perp(gval(e))) > 0]
-        nb = [n for n in neighborhood(e, 2) if
-              np.dot(gval(e), gval(n)) > 0 and np.dot(envec(e, n), perp(gval(e))) < 0]
+        nhood = [ n for n in neighborhood(e, 2) if np.dot(gval(e), gval(n)) > 0]
+        nf = [n for n in nhood if np.dot(envec(e, n), perp(gval(e))) > 0]
+        nb = [n for n in nhood if np.dot(envec(e, n), perp(gval(e))) < 0]
 
-        f_idx = np.argmin([dist(e, n) for n in nf])
-        f = h(nf[f_idx])
-        b_idx = np.argmin([dist(e, n) for n in nb])
-        b = h(nb[b_idx])
-        if f not in links.inv:
-            links[h(e)] = f
-        else:
-            a = links.inv[f]
-            if dist(e, f) < dist(a, f):
-                del links.inv[f]
-                del links[h(e)]
-                links[h(e)] = f
-        if b not in links:
-            links[b] = h(e)
-        else:
-            a = links[b]
-            if dist(b, e) < dist(b, a):
-                del links[b]
-                del links.inv[h(e)]
-                links[h(e)] = f
+        if nf:
+            f_idx = np.argmin([dist(e, n) for n in nf])
+            f = nf[f_idx]
+            if f not in links.inv or dist(e,f) < dist(links.inv[f], f):
+                if f in links.inv: del links.inv[f]
+                if e in links: del links[e]
+                links[e] = f
+
+        if nb:
+            b_idx = np.argmin([dist(e, n) for n in nb])
+            b = nb[b_idx]
+            if b not in links or dist(b, e) < dist(b, links[b]):
+                if b in links: del links[b]
+                if e in links.inv: del links.inv[e]
+                links[b] = e
     return links
 
 
-class CurvePoint(object):
-    __slots__ = ['x', 'y', 'valid']
-
-    def __init__(self, x, y, valid):
-        self.x = x
-        self.y = y
-        self.valid = valid
-
-    def __hash__(self):
-        return hash((self.x,self.y))
-
-
 def thresholds_with_hysteresis(edges, links, grads, high_threshold, low_threshold):
-    edges = [CurvePoint(e[0], e[1], valid=False) for e in edges]
     gx, gy = grads
 
-    def mag(x, y):
-        x, y = int(x), int(y)
+    def mag(p):
+        x, y = int(p.x), int(p.y)
         return np.hypot(gx[y, x], gy[y, x])
-
-    def h(float_array):
-        return tuple(x for x in float_array)
 
     chains = []
     for e in edges:
-        if not e.valid and mag(e.x,e.y) >= high_threshold:
+        if not e.valid and mag(e) >= high_threshold:
             forward = []
             backward = []
             e.valid = True
-            f = h([e.x,e.y])
-            while h(f) in links:
-                n = links[h(f)]
-                if not n.valid and mag(n.x,n.y) >= low_threshold:
-                    n.valid = True
-                    f = n
-                    forward.append(f)
-            b = h([e.x,e.y])
-            while h(b) in links.inv:
-                n = links.inv[h(b)]
-                if not n.valid and mag(n.x,n.y) >= low_threshold:
-                    n.valid = True
-                    b = n
-                    backward.insert(0,b)
-            chain = backward + [h([e.x,e.y])] + forward
-            chains.append(np.asarray([(c.x,c.y) for c in chain ]))
+            f = e
+            while f in links and not links[f].valid and mag(links[f]) >= low_threshold:
+                n = links[f]
+                n.valid = True
+                f = n
+                forward.append(f)
+            b = e
+            while b in links.inv and not links.inv[b].valid and mag(links.inv[f]) >= low_threshold:
+                n = links.inv[b]
+                n.valid = True
+                b = n
+                backward.insert(0, b)
+            chain = backward + [e] + forward
+            chains.append(np.asarray([(c.x, c.y) for c in chain]))
     return chains
+
 
 if __name__ == '__main__':
     import numpy as np
@@ -157,7 +149,10 @@ if __name__ == '__main__':
     I[pad:circle.shape[0] + pad, pad:circle.shape[1] + pad] = circle
     I = I.astype(np.float32)
 
+    I[20, 20] = 0
+    I[10:13, 10:40] = 0
+
     grads = image_gradient(I, 2.0)
-    edgels = compute_edge_points(grads)
-    links = chain_edge_points(edgels, grads)
-    chains = thresholds_with_hysteresis(edgels, links, grads, 1, 0.1)
+    edges = compute_edge_points(grads)
+    links = chain_edge_points(edges, grads)
+    chains = thresholds_with_hysteresis(edges, links, grads, 1, 0.1)
