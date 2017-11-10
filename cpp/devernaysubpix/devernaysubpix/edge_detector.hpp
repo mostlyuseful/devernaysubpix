@@ -1,13 +1,13 @@
 #pragma once
 
 #include "curvepoint.hpp"
+#include "linkmap.hpp"
 
 #include <algorithm>
 #include <stdexcept>
 #include <iostream>
 #include <cmath>
 #include <opencv/cv.hpp>
-#include <boost/bimap.hpp>
 
 namespace EdgeDetector {
 
@@ -128,10 +128,7 @@ inline std::vector<CurvePoint> compute_edge_points(PartialImageGradients gradien
     return edges;
 }
 
-using LinkMap = boost::bimap<CurvePoint, CurvePoint>;
-
 LinkMap chain_edge_points(std::vector<CurvePoint> const& edges, PartialImageGradients& gradients) {
-
     // TODO: Optimize by precomputing neighborhood and put into 2d array
     auto const neighborhood = [&edges](float const row, float const col, float const max_distance) {
         std::vector<CurvePoint> hood;
