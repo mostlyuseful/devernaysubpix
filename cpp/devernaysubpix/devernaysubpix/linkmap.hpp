@@ -39,10 +39,14 @@ public:
   bool has(CurvePoint const& left, CurvePoint const& right) const;
   bool hasLeft(CurvePoint const& p) const;
   bool hasRight(CurvePoint const& p) const;
-  Link byLeft(CurvePoint const& p) const;
-  Link byRight(CurvePoint const& p) const;
+  Link getByLeft(CurvePoint const& p) const;
+  Link getByRight(CurvePoint const& p) const;
   void link(CurvePoint const& left, CurvePoint const& right);
-  void unlink(CurvePoint const& left, CurvePoint const& right);
+  void unlink(const EdgeDetector::CurvePoint &left, const EdgeDetector::CurvePoint &right);
+  void unlink(std::pair<EdgeDetector::CurvePoint,EdgeDetector::CurvePoint> item);
+  void unlinkByLeft(const EdgeDetector::CurvePoint &left);
+  void unlinkByRight(const EdgeDetector::CurvePoint &right);
+  void replace(CurvePoint const& left, CurvePoint const& right);
 
 protected:
   OneSidedMap m_leftRight;
