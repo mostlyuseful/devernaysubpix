@@ -25,7 +25,8 @@ void write_edge_points(cv::Mat const &background_image,
 void write_chains(cv::Mat const &background_image,
                   EdgeDetector::Chains const &chains) {
 
-  std::vector<cv::Vec3b> const colors = {{255, 0, 0}, {0, 255, 0}, {0, 0, 255}};
+  std::vector<cv::Vec3b> const colors = {{255, 0, 0}, {0, 255, 0}, {0, 0, 255},
+                                         {255,255,0},{0,255,255},{255,0,255}};
   size_t color_idx = 0;
 
   cv::Mat canvas;
@@ -58,7 +59,7 @@ int main(int argc, char *argv[]) {
   mag.convertTo(mag_u8, CV_8U, 255 / (max - min), -min);
   cv::imwrite("magn.tif", mag_u8);
 
-  auto mask = grads.threshold(100);
+  auto mask = grads.threshold(50);
   cv::imwrite("mask.tif", mask);
 
   auto edges = E::compute_edge_points(grads, mask);

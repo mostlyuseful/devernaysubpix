@@ -136,7 +136,7 @@ compute_edge_points(PartialImageGradients gradients, cv::Mat mask) {
   // TODO: Parallelize
   for (int row = 1; row < (rows - 1); ++row) {
     for (int col = 1; col < (columns - 1); ++col) {
-      if (mask.at<uint8_t>(row, col) || true) {
+      if (mask.at<uint8_t>(row, col)) {
         PossibleCurvePoint p = compute_single_edge_point(gradients, row, col);
         if (p.isLocalExtremum) {
           if (p.point.x < 0 || p.point.y < 0) {
