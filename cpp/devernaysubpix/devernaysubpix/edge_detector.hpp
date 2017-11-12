@@ -265,6 +265,7 @@ LinkMap inline chain_edge_points(std::vector<CurvePoint> const &edges,
   auto const neighborhood_bitmap = precompute_neighborhood_bitmap(gradients.horz.size(), edges);
   for (auto const &e : edges) {
     auto const neighborhood = get_neighborhood_bitmap(neighborhood_bitmap, e, 2);
+    // auto const neighborhood = get_neighborhood_direct(edges, e, 2);
     auto const nearest =
         find_nearest_forward_and_backward(neighborhood, gradients, e);
     if (nearest.forward_valid) {
