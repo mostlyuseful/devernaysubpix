@@ -1,8 +1,6 @@
-#include "mainwindow.h"
-#include <QApplication>
-
 #include "draw.hpp"
 #include "edge_detector.hpp"
+
 #include <cv.hpp>
 #include <fstream>
 #include <iostream>
@@ -95,9 +93,4 @@ int main(int argc, char *argv[]) {
   write_chains(g, chains);
 
   return 0;
-
-  /*QApplication a(argc, argv);
-  MainWindow w;
-  w.show();
-  return a.exec();*/
 }

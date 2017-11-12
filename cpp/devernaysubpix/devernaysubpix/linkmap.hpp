@@ -35,18 +35,64 @@ using Link = std::pair<CurvePoint, CurvePoint>;
 
 class LinkMap {
 public:
-  LinkMap();
-  bool has(CurvePoint const& left, CurvePoint const& right) const;
-  bool hasLeft(CurvePoint const& p) const;
-  bool hasRight(CurvePoint const& p) const;
-  Link getByLeft(CurvePoint const& p) const;
-  Link getByRight(CurvePoint const& p) const;
-  void link(CurvePoint const& left, CurvePoint const& right);
-  void unlink(const EdgeDetector::CurvePoint &left, const EdgeDetector::CurvePoint &right);
-  void unlink(std::pair<EdgeDetector::CurvePoint,EdgeDetector::CurvePoint> item);
-  void unlinkByLeft(const EdgeDetector::CurvePoint &left);
-  void unlinkByRight(const EdgeDetector::CurvePoint &right);
-  void replace(CurvePoint const& left, CurvePoint const& right);
+    LinkMap() {};
+    bool has(CurvePoint const& left, CurvePoint const& right) const {
+        auto it = m_leftRight.find(left);
+        if (it == m_leftRight.cend()) {
+            return false;
+        }
+        return equalsCurvePointLocationOnly()(it->second, right);
+    }
+    bool hasLeft(CurvePoint const& p) const {
+        return m_leftRight.find(p) != m_leftRight.cend();
+    }
+    bool hasRight(CurvePoint const& p) const {
+        return m_rightLeft.find(p) != m_leftRight.cend();
+    }
+    Link getByLeft(CurvePoint const& p) const {
+        auto it = m_leftRight.find(p);
+        return std::make_pair(it->first, it->second);
+    }
+    Link getByRight(CurvePoint const& p) const {
+        auto it = m_rightLeft.find(p);
+        return std::make_pair(it->second, it->first);
+    }
+    void link(CurvePoint const& left, CurvePoint const& right) {
+        if (this->hasLeft(left)) {
+            throw std::runtime_error("Left already registered");
+        }
+        if (this->hasRight(right)) {
+            throw std::runtime_error("Right already registered");
+        }
+        m_leftRight.insert(std::make_pair(left, right));
+        m_rightLeft.insert(std::make_pair(right, left));
+    }
+    void unlink(const EdgeDetector::CurvePoint &left, const EdgeDetector::CurvePoint &right) {
+        m_leftRight.erase(left);
+        m_rightLeft.erase(right);
+    }
+    void unlink(std::pair<EdgeDetector::CurvePoint,EdgeDetector::CurvePoint> item) {
+        return this->unlink(item.first, item.second);
+    }
+    void unlinkByLeft(const EdgeDetector::CurvePoint &left) {
+        if (!this->hasLeft(left)) {
+            return;
+        }
+        auto const pair = this->getByLeft(left);
+        this->unlink(pair);
+    }
+    void unlinkByRight(const EdgeDetector::CurvePoint &right) {
+        if (!this->hasRight(right)) {
+            return;
+        }
+        auto const pair = this->getByRight(right);
+        this->unlink(pair);
+    }
+    void replace(CurvePoint const& left, CurvePoint const& right)
+    {
+        this->unlink(left, right);
+        this->link(left, right);
+    }
 
 protected:
   OneSidedMap m_leftRight;
