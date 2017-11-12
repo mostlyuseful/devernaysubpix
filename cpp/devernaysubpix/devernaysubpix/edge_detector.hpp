@@ -2,6 +2,7 @@
 
 #include "curvepoint.hpp"
 #include "linkmap.hpp"
+#include "neighborhoodbitmap.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -220,7 +221,31 @@ NearestNeighborhoodPoints inline find_nearest_forward_and_backward(
   return out;
 }
 
-std::vector<CurvePoint> inline get_neighborhood(
+NeighborhoodBitmap inline precompute_neighborhood_bitmap(cv::Size const imageSize, std::vector<CurvePoint> const &edges) {
+    NeighborhoodBitmap bitmap(imageSize);
+    for(auto const& e: edges){
+        int const row = static_cast<int>(e.y);
+        int const col = static_cast<int>(e.x);
+        bitmap.set(e);
+    }
+    return bitmap;
+}
+
+std::vector<CurvePoint> inline get_neighborhood_bitmap(NeighborhoodBitmap const& bitmap, CurvePoint const& p, unsigned int const max_distance) {
+    int const px = static_cast<int>(p.x);
+    int const py = static_cast<int>(p.y);
+    std::vector<CurvePoint> out;
+    for(int row=py-max_distance;row<=py+max_distance;++row){
+        for(int col=px-max_distance;col<=px+max_distance;++col){
+            if(bitmap.has(row,col)){
+                out.push_back(bitmap.get(row,col));
+            }
+        }
+    }
+    return out;
+}
+
+std::vector<CurvePoint> inline get_neighborhood_direct(
     std::vector<CurvePoint> const &edges, CurvePoint const &p,
     float max_distance) {
   // TODO: Optimize by precomputing neighborhood and put into 2d array
@@ -237,8 +262,9 @@ std::vector<CurvePoint> inline get_neighborhood(
 LinkMap inline chain_edge_points(std::vector<CurvePoint> const &edges,
                                  PartialImageGradients const &gradients) {
   LinkMap links;
+  auto const neighborhood_bitmap = precompute_neighborhood_bitmap(gradients.horz.size(), edges);
   for (auto const &e : edges) {
-    auto const neighborhood = get_neighborhood(edges, e, 2);
+    auto const neighborhood = get_neighborhood_bitmap(neighborhood_bitmap, e, 2);
     auto const nearest =
         find_nearest_forward_and_backward(neighborhood, gradients, e);
     if (nearest.forward_valid) {

@@ -16,6 +16,7 @@ add_executable(devernaysubpix
     edge_detector.cpp
     curvepoint.cpp
     linkmap.cpp
+    neighborhoodbitmap.cpp
     )
 target_link_libraries(devernaysubpix
   Qt5::Widgets
