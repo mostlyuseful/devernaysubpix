@@ -18,6 +18,7 @@ add_executable(devernaysubpix
     curvepoint.cpp
     linkmap.cpp
     neighborhoodbitmap.cpp
+    draw.cpp
     )
 target_link_libraries(devernaysubpix
   Qt5::Widgets

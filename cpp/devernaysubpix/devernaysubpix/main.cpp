@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include <QApplication>
 
+#include "draw.hpp"
 #include "edge_detector.hpp"
 #include <cv.hpp>
 #include <fstream>
@@ -13,8 +14,7 @@ void write_edge_points(cv::Mat const &background_image,
   cv::Mat canvas;
   cv::cvtColor(background_image, canvas, CV_GRAY2BGR);
   for (auto const &e : edges) {
-    canvas.at<cv::Vec3b>(cv::Point(e.x, e.y)) = {0, 0, 255};
-    // cv::circle(canvas, cv::Point(e.x,e.y), 3, {0,0,255});
+      Draw::pixel_aa(canvas, cv::Point2d(e.x,e.y), {0,0,255});
   }
   cv::imwrite("edges.tif", canvas);
 
@@ -40,8 +40,8 @@ void write_chains(cv::Mat const &background_image,
     for (size_t i = 1; i < chain.size(); ++i) {
       auto const pt1 = chain.at(i - 1);
       auto const pt2 = chain.at(i);
-      cv::arrowedLine(canvas, cv::Point(pt1.x, pt1.y), cv::Point(pt2.x, pt2.y),
-                      color);
+      cv::arrowedLine(canvas, cv::Point2f(pt1.x, pt1.y), cv::Point2f(pt2.x, pt2.y),
+                      color, 1, CV_AA);
     }
   }
   cv::imwrite("chains.tif", canvas);
@@ -53,6 +53,8 @@ int main(int argc, char *argv[]) {
 
   auto g = cv::imread("zebra_256.tif", 0);
   // auto g = cv::imread("kreis.png", 0);
+  // auto g = cv::imread("edge.png", 0);
+  // auto g = cv::imread("kreis_gross.png", 0);
 
   boost::timer::auto_cpu_timer* t = new boost::timer::auto_cpu_timer();
   auto grads = E::image_gradient(g, 1.0);
