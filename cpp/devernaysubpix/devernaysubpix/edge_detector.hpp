@@ -11,11 +11,6 @@
 
 namespace EdgeDetector {
 
-struct DerivativeGaussianKernels {
-  cv::Mat horz;
-  cv::Mat vert;
-};
-
 struct PartialImageGradients {
   cv::Mat horz;
   cv::Mat vert;
@@ -48,30 +43,17 @@ struct PartialImageGradients {
   }
 };
 
-inline DerivativeGaussianKernels
-derivative_gaussian_kernels(double sigma, uint max_ksize = 64) {
-  int const min_ksize = 3; // Pixels
-  int const ksize = std::max<int>(
-      min_ksize, static_cast<int>(std::min<double>(
-                     2 * (((sigma - 0.8) / 0.3) + 1) + 1, max_ksize)));
-  cv::Mat gauss_kernel_horz = cv::getGaussianKernel(ksize, sigma, CV_32F);
-  cv::Mat gauss_kernel_horz_deriv;
-  cv::Mat diff_kernel{0.5, 0.0, -0.5};
-  // Convolving the gaussian kernel with a sobel kernel results in a first-order
-  // Gaussian derivative filter
-  cv::filter2D(gauss_kernel_horz, gauss_kernel_horz_deriv, -1, diff_kernel,
-               {-1, -1}, 0, cv::BORDER_ISOLATED);
-  cv::Mat gauss_kernel_vert_deriv = gauss_kernel_horz_deriv.t();
-  return DerivativeGaussianKernels{gauss_kernel_horz_deriv,
-                                   gauss_kernel_vert_deriv};
-}
-
 inline PartialImageGradients image_gradient(cv::Mat image, double sigma) {
-  auto const kernels = derivative_gaussian_kernels(sigma);
+  cv::Mat image32f;
+  cv::Mat smoothed;
+  image.convertTo(image32f, CV_32F);
+  cv::GaussianBlur(image32f, smoothed, cv::Size(0, 0), sigma);
+
   cv::Mat grad_horz;
   cv::Mat grad_vert;
-  cv::filter2D(image, grad_horz, CV_32F, kernels.horz);
-  cv::filter2D(image, grad_vert, CV_32F, kernels.vert);
+  cv::Sobel(smoothed, grad_horz, CV_32F, 1, 0);
+  cv::Sobel(smoothed, grad_vert, CV_32F, 0, 1);
+
   return PartialImageGradients{grad_horz, grad_vert};
 }
 
@@ -154,7 +136,7 @@ compute_edge_points(PartialImageGradients gradients, cv::Mat mask) {
   // TODO: Parallelize
   for (int row = 1; row < (rows - 1); ++row) {
     for (int col = 1; col < (columns - 1); ++col) {
-      if (mask.at<uint8_t>(row, col)) {
+      if (mask.at<uint8_t>(row, col) || true) {
         PossibleCurvePoint p = compute_single_edge_point(gradients, row, col);
         if (p.isLocalExtremum) {
           if (p.point.x < 0 || p.point.y < 0) {
