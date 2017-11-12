@@ -5,6 +5,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 
+find_package(Boost COMPONENTS timer)
 find_package(OpenCV REQUIRED)
 find_package(Qt5Widgets)
 
@@ -20,7 +21,9 @@ add_executable(devernaysubpix
     )
 target_link_libraries(devernaysubpix
   Qt5::Widgets
-  ${OpenCV_LIBS})
+  ${OpenCV_LIBS}
+  Boost::timer
+  )
 
 set_target_properties(devernaysubpix PROPERTIES CXX_STANDARD 11)
 # Enforce return values in non-void functions
