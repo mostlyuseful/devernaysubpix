@@ -21,4 +21,21 @@ set_target_properties(devernaysubpix PROPERTIES CXX_STANDARD 11)
 # Enforce return values in non-void functions
 target_compile_options(devernaysubpix PUBLIC "-Werror=return-type")
 
-install(TARGETS devernaysubpix RUNTIME DESTINATION bin)
+
+# OpenCV example
+
+add_executable(cv_example
+    cv_example.cpp
+    )
+target_link_libraries(cv_example
+  ${OpenCV_LIBS}
+  )
+
+set_target_properties(cv_example PROPERTIES CXX_STANDARD 11)
+
+# Enforce return values in non-void functions
+target_compile_options(cv_example PUBLIC "-Werror=return-type")
+
+
+
+install(TARGETS devernaysubpix cv_example RUNTIME DESTINATION bin)

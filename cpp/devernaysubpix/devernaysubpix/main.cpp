@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 
+// Only used in this example, feel free to remove boost depedencies
 #include <boost/timer/timer.hpp>
 
 void write_edge_points(cv::Mat const &background_image,
@@ -79,6 +80,9 @@ int main(int argc, char *argv[]) {
     std::cout << "thresholds_with_hysteresis:" << std::endl;
     delete t;
 
+    // Now write out informational data to disk
+
+    // Raw edge magnitude image, normalized to [0..255]
     {
         auto mag = grads.magnitude();
         double min, max;
