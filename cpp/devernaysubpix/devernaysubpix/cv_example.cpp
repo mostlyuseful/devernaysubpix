@@ -42,7 +42,10 @@ cv::Mat draw_chains(cv::Mat const &background_image,
 cv::Mat generateSmoothedCircle() {
   cv::Mat canvas(127, 127, CV_8U);
   canvas = 0;
-  cv::circle(canvas, cv::Point(64, 64), 40, cv::Scalar(255, 255, 255),
+  cv::circle(canvas,
+             cv::Point(64, 64), // center
+             40, // radius
+             cv::Scalar(255, 255, 255), // color
              CV_FILLED);
   cv::GaussianBlur(canvas, canvas, cv::Size(0, 0), 3.0);
   return canvas;
