@@ -7,12 +7,19 @@
 
 namespace EdgeDetector {
 
+/**
+ * @brief The NeighborhoodBitmap class stores information about neighbors inside a flat vector
+ */
 class NeighborhoodBitmap {
   public:
     NeighborhoodBitmap(cv::Size const size)
         : m_rows(static_cast<unsigned int>(size.height)),
           m_columns(static_cast<unsigned int>(size.width)),
           m_bitmap(static_cast<size_t>(size.area())) {}
+    /**
+     * @brief Stores point in bitmap
+     * @param p The point to store
+     */
     void set(CurvePoint const &p) {
         int const row = static_cast<int>(p.y);
         int const col = static_cast<int>(p.x);
@@ -25,6 +32,13 @@ class NeighborhoodBitmap {
         m_bitmap[static_cast<size_t>(idx)] =
             std::unique_ptr<CurvePoint>(new CurvePoint(p));
     }
+
+    /**
+     * @brief Tests (row,col) location for membership
+     * @param row
+     * @param col
+     * @return True if bitmap contains point for (row,col), false if not
+     */
     bool has(int row, int col) const {
         auto const idx = this->indexForLocation(row,col);
         if (!this->isValidIndex(idx)) {
@@ -32,6 +46,14 @@ class NeighborhoodBitmap {
         }
         return static_cast<bool>(m_bitmap[static_cast<size_t>(idx)]);
     }
+
+    /**
+     * @brief Returns point stored at location (row,col)
+     * @param row
+     * @param col
+     * @return The stored point
+     * @throw std::runtime_error if location not stored. Test by using has(...) before.
+     */
     CurvePoint get(int row, int col) const {
         auto const idx = this->indexForLocation(row, col);
         if (!this->isValidIndex(idx)) {

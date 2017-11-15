@@ -20,6 +20,10 @@ struct hashCurvePointLocationOnly {
     }
 };
 
+/**
+ * @brief The equalsCurvePointLocationOnly struct is a function object that compares
+ * only the x and y members, ignoring valid
+ */
 struct equalsCurvePointLocationOnly {
     bool inline operator()(CurvePoint const &p1, CurvePoint const &p2) const
         noexcept {
@@ -28,14 +32,15 @@ struct equalsCurvePointLocationOnly {
 };
 
 using OneSidedMap =
-    std::unordered_map<CurvePoint, CurvePoint, hashCurvePointLocationOnly,
+    std::unordered_map<CurvePoint, CurvePoint,
+                       hashCurvePointLocationOnly,
                        equalsCurvePointLocationOnly>;
 
 using Link = std::pair<CurvePoint, CurvePoint>;
 
 class LinkMap {
   public:
-    LinkMap(){};
+    LinkMap(){}
     bool has(CurvePoint const &left, CurvePoint const &right) const {
         auto it = m_leftRight.find(left);
         if (it == m_leftRight.cend()) {

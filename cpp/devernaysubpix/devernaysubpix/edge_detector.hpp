@@ -54,6 +54,19 @@ struct PartialImageGradients {
     }
 
     /**
+     * @brief Computes gradient magnitude at (row,col) location
+     * @param row Row index
+     * @param col Column index
+     * @return The gradient magnitude
+     */
+    template <typename T>
+    inline T magnitude(int const row, int const col) const {
+        T const dx = horz.at<T>(row, col);
+        T const dy = vert.at<T>(row, col);
+        return std::hypot(dx, dy);
+    }
+
+    /**
      * @brief Computes magnitude for all points in gradient field
      * @return The magnitudes of whole gradient field
      */
@@ -108,13 +121,20 @@ struct PossibleCurvePoint {
     CurvePoint point;
 };
 
+/**
+ * @brief Tests if point at (row,col) is a local gradient extremum and computes sub-pixel location refinement
+ * @param gradients Gradient field used for maximum testing and sub-pixel refinement
+ * @param row
+ * @param col
+ * @return A PossibleCurvePoint instance with isLocalExtremum set to true if refinement was successful,
+ *         in this case member 'point' is populated with refined coordinates
+ */
 inline PossibleCurvePoint
 compute_single_edge_point(PartialImageGradients const &gradients, int row,
                           int col) {
 
     auto const mag = [&gradients](int row, int col) -> float {
-        return std::hypotf(gradients.horz.at<float>(row, col),
-                           gradients.vert.at<float>(row, col));
+        return gradients.magnitude<float>(row, col);
     };
 
     float const center_mag = mag(row, col);
@@ -140,9 +160,6 @@ compute_single_edge_point(PartialImageGradients const &gradients, int row,
         float const b = mag(row, col);
         float const c = mag(row + theta_y, col + theta_x);
         float const lamda = (a - c) / (2 * (a - (2 * b) + c));
-        /*if (lamda>1 || lamda < -1) {
-            return PossibleCurvePoint{false, {}};
-        }*/
         float const ex = col + lamda * theta_x;
         float const ey = row + lamda * theta_y;
         return PossibleCurvePoint{true, CurvePoint(ex, ey, false)};
@@ -163,11 +180,15 @@ compute_edge_points(PartialImageGradients gradients, cv::Mat mask) {
     }
 
     if (gradients.horz.channels() != 1) {
-        throw std::runtime_error("Horizontal image must have single channel");
+        throw std::runtime_error("Horizontal gradient strength image must have single channel");
     }
 
     if (gradients.vert.channels() != 1) {
-        throw std::runtime_error("Vertical image must have single channel");
+        throw std::runtime_error("Vertical gradient strength image must have single channel");
+    }
+
+    if (mask.type()!=CV_8U) {
+        throw std::runtime_error("Mask image must be of type CV_8U");
     }
 
     int const rows = gradients.horz.rows;
