@@ -186,12 +186,6 @@ compute_edge_points(PartialImageGradients gradients, cv::Mat mask) {
                 PossibleCurvePoint p =
                     compute_single_edge_point(gradients, row, col);
                 if (p.isLocalExtremum) {
-                    if (p.point.x < 0 || p.point.y < 0) {
-                        throw std::runtime_error("BELOW 0");
-                    }
-                    if (std::isnan(p.point.x) || std::isnan(p.point.y)) {
-                        throw std::runtime_error("NAN");
-                    }
                     edges.push_back(p.point);
                 }
             }
