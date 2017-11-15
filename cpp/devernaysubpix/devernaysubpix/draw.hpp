@@ -27,11 +27,16 @@ cv::Vec3b inline blend(cv::Vec3b const &src, cv::Vec3b const &dst,
  */
 void inline pixel_aa(cv::Mat &canvas, cv::Point2d const location,
                      cv::Vec3b const &color) {
-    for (int rounded_x = std::floor(location.x);
-         rounded_x <= std::ceil(location.x); ++rounded_x) {
-        for (int rounded_y = std::floor(location.y);
-             rounded_y <= std::ceil(location.y); ++rounded_y) {
-            double const percent_x = 1 - std::abs(location.x - rounded_x);
+    if(canvas.type()!=CV_8UC3) {
+        throw std::runtime_error("canvas has to be of type CV_8UC3");
+    }
+    for (int rounded_x = static_cast<int>(std::floor(location.x));
+             rounded_x <= std::ceil(location.x);
+             ++rounded_x) {
+        double const percent_x = 1 - std::abs(location.x - rounded_x);
+        for (int rounded_y = static_cast<int>(std::floor(location.y));
+                 rounded_y <= std::ceil(location.y);
+                 ++rounded_y) {
             double const percent_y = 1 - std::abs(location.y - rounded_y);
             double const percent = percent_x * percent_y;
             auto const bg_color = canvas.at<cv::Vec3b>(location);

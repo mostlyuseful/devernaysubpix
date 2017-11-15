@@ -25,17 +25,15 @@ class NeighborhoodBitmap {
         m_bitmap[static_cast<size_t>(idx)] =
             std::unique_ptr<CurvePoint>(new CurvePoint(p));
     }
-    bool has(unsigned int row, unsigned int col) const {
-        auto const idx = this->indexForLocation(static_cast<int>(row),
-                                                static_cast<int>(col));
+    bool has(int row, int col) const {
+        auto const idx = this->indexForLocation(row,col);
         if (!this->isValidIndex(idx)) {
             return false;
         }
         return static_cast<bool>(m_bitmap[static_cast<size_t>(idx)]);
     }
-    CurvePoint get(unsigned int row, unsigned int col) const {
-        auto const idx = this->indexForLocation(static_cast<int>(row),
-                                                static_cast<int>(col));
+    CurvePoint get(int row, int col) const {
+        auto const idx = this->indexForLocation(row, col);
         if (!this->isValidIndex(idx)) {
             throw std::runtime_error("Not a valid location");
         }
@@ -44,10 +42,10 @@ class NeighborhoodBitmap {
 
   protected:
     int indexForLocation(int row, int col) const {
-        return (row * m_columns) + col;
+        return (row * static_cast<int>(m_columns)) + col;
     }
     bool isValidIndex(int index) const {
-        return (index >= 0) && (index < m_bitmap.size());
+        return (index >= 0) && (index < static_cast<int>(m_bitmap.size()));
     }
 
   protected:

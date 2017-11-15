@@ -8,8 +8,17 @@ find_package(OpenCV REQUIRED)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
+set(HEADERS
+    curvepoint.hpp
+    draw.hpp
+    edge_detector.hpp
+    linkmap.hpp
+    neighborhoodbitmap.hpp
+    )
+
 add_executable(devernaysubpix
     main.cpp
+    ${HEADERS}
     )
 target_link_libraries(devernaysubpix
   ${OpenCV_LIBS}
@@ -25,6 +34,7 @@ target_compile_options(devernaysubpix PUBLIC "-Werror=return-type")
 # OpenCV example
 
 add_executable(cv_example
+    ${HEADERS}
     cv_example.cpp
     )
 target_link_libraries(cv_example

@@ -11,7 +11,7 @@ cv::Mat draw_edge_points(cv::Mat const &background_image,
   cv::Mat canvas;
   cv::cvtColor(background_image, canvas, CV_GRAY2BGR);
   for (auto const &e : edges) {
-    Draw::pixel_aa(canvas, cv::Point2d(e.x, e.y), {0, 0, 255});
+    Draw::pixel_aa(canvas, cv::Point2f(e.x, e.y), {0, 0, 255});
   }
   return canvas;
 }

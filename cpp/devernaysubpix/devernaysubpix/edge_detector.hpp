@@ -16,16 +16,36 @@ struct PartialImageGradients {
     cv::Mat horz;
     cv::Mat vert;
 
+
+    /**
+     * @brief Evaluates gradient tuple at location (row,col)
+     * @param row Row index
+     * @param col Column index
+     * @return Gradient value as CurvePoint with valid:=false
+     */
     template <typename T>
     CurvePoint inline at(int const row, int const col) const {
         return CurvePoint(horz.at<float>(row, col), vert.at<float>(row, col),
                           false);
     }
-    template <typename T> CurvePoint inline at(CurvePoint const &p) const {
+
+    /**
+     * @brief Evaluates gradient tuple at location of point. Coordinates are rounded by casting to int
+     * @param p The point
+     * @return Gradient value as CurvePoint with valid:=false
+     */
+    template <typename T>
+    CurvePoint inline at(CurvePoint const &p) const {
         return at<T>(static_cast<int>(p.y), static_cast<int>(p.x));
     }
 
-    template <typename T> inline T magnitude(CurvePoint const &p) const {
+    /**
+     * @brief Computes gradient magnitude at location of point. Coordinates are rounded by casting to int
+     * @param p The point
+     * @return The gradient magnitude
+     */
+    template <typename T>
+    inline T magnitude(CurvePoint const &p) const {
         int const row = static_cast<int>(p.y);
         int const col = static_cast<int>(p.x);
         T const dx = horz.at<T>(row, col);
@@ -33,23 +53,45 @@ struct PartialImageGradients {
         return std::hypot(dx, dy);
     }
 
+    /**
+     * @brief Computes magnitude for all points in gradient field
+     * @return The magnitudes of whole gradient field
+     */
     cv::Mat inline magnitude() const {
         cv::Mat magn;
         cv::magnitude(horz, vert, magn);
         return magn;
     }
 
+    /**
+     * @brief Thresholds gradient magnitude, returns !=0 where local_magnitude > min_magnitude
+     * @param min_magnitude The lower magnitude threshold. All gradient magnitudes higher than this will be set to non-zero
+     * @return A mask image with matching locations set to !=0
+     */
     cv::Mat inline threshold(double min_magnitude) const {
         return this->magnitude() > min_magnitude;
     }
 };
 
+/**
+ * @brief Computes gradient field for image using a gaussian smoothing kernel
+ * @param image The input image
+ * @param sigma Sigma of gaussian smoothing kernel
+ * @return The gradient field for the input image
+ */
 inline PartialImageGradients image_gradient(cv::Mat image, double sigma) {
-    cv::Mat image32f;
-    cv::Mat smoothed;
+    if(image.channels()>1) {
+        throw std::runtime_error("image must have exactly one channel");
+    }
+    // Convert to float to prevent integer rounding errors
+    cv::Mat image32f;    
     image.convertTo(image32f, CV_32F);
+
+    // Smooth image before derivative computation to reduce spurious kinks
+    cv::Mat smoothed;
     cv::GaussianBlur(image32f, smoothed, cv::Size(0, 0), sigma);
 
+    // Compute derivative with optimized sobel operator
     cv::Mat grad_horz;
     cv::Mat grad_vert;
     cv::Sobel(smoothed, grad_horz, CV_32F, 1, 0);
@@ -58,6 +100,9 @@ inline PartialImageGradients image_gradient(cv::Mat image, double sigma) {
     return PartialImageGradients{grad_horz, grad_vert};
 }
 
+/**
+ * @brief The PossibleCurvePoint struct bundles a point and signifies whether it has local extremal gradient magnitude
+ */
 struct PossibleCurvePoint {
     bool isLocalExtremum;
     CurvePoint point;
@@ -163,15 +208,20 @@ struct NearestNeighborhoodPoints {
     CurvePoint backward;
 };
 
+/**
+ * @brief Computes vector perpendicular to input vector
+ * @param p The input vector
+ * @return The perpendicular vector with same validity flag as input
+ */
 CurvePoint inline perpendicular_vec(CurvePoint const &p) {
     return CurvePoint(p.y, -p.x, p.valid);
 }
 
 /**
- * @brief Computes dot (scalar) product between two points
+ * @brief Computes dot product (scalar product) between two points
  * @param p1 Left-hand point
  * @param p2 Right-hand point
- * @return Dot-product
+ * @return The dot product of p1 and p2
  */
 float inline dot(CurvePoint const &p1, CurvePoint const &p2) {
     return (p1.x * p2.x) + (p1.y * p2.y);
@@ -226,8 +276,6 @@ NeighborhoodBitmap inline precompute_neighborhood_bitmap(
     cv::Size const imageSize, std::vector<CurvePoint> const &edges) {
     NeighborhoodBitmap bitmap(imageSize);
     for (auto const &e : edges) {
-        int const row = static_cast<int>(e.y);
-        int const col = static_cast<int>(e.x);
         bitmap.set(e);
     }
     return bitmap;
@@ -238,9 +286,10 @@ std::vector<CurvePoint> inline get_neighborhood_bitmap(
     unsigned int const max_distance) {
     int const px = static_cast<int>(p.x);
     int const py = static_cast<int>(p.y);
+    int const max_distancei = static_cast<int>(max_distance);
     std::vector<CurvePoint> out;
-    for (int row = py - max_distance; row <= py + max_distance; ++row) {
-        for (int col = px - max_distance; col <= px + max_distance; ++col) {
+    for (int row = py - max_distancei; row <= py + max_distancei; ++row) {
+        for (int col = px - max_distancei; col <= px + max_distancei; ++col) {
             if (bitmap.has(row, col)) {
                 out.push_back(bitmap.get(row, col));
             }
