@@ -53,36 +53,47 @@ int main(int argc, char *argv[]) {
 
   cv::Mat source = generateSmoothedCircle();
   auto const grads = E::image_gradient(source, 1.0);
-  auto const mask = grads.threshold(10);
-  auto edge_points = E::compute_edge_points(grads, mask);
-  auto links = E::chain_edge_points(edge_points, grads);
-  auto chains =
-      E::thresholds_with_hysteresis(edge_points, links, grads, 1, 0.1f);
+
+  // Build mask image from thresholded source image:
+  // Separate blurred white circle from dark background via automatic
+  // threshold computed by Otsu's method (inter/intra variance two-class clustering)
+
+  cv::Mat thresh;
+  cv::threshold(source, thresh, 128, 255, cv::ThresholdTypes::THRESH_BINARY | cv::ThresholdTypes::THRESH_OTSU);
 
   std::vector<std::vector<cv::Point>> contours;
   std::vector<cv::Vec4i> hierarchy;
-  cv::findContours(mask.clone(), contours, hierarchy, CV_RETR_CCOMP,
-                   CV_CHAIN_APPROX_NONE);
+  // Clone to preserve original image
+  cv::findContours(thresh.clone(), contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
 
+  // Draw contours to generate mask image, use big brush to get neighboring pixels, too
   cv::Mat contours_img(source.size(), CV_8U);
   contours_img = 0;
-  cv::drawContours(contours_img, contours, -1, 255, CV_FILLED, 8, hierarchy);
-  cv::dilate(contours_img, contours_img, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(8,8)));
+  const int brush_size = 5;
+  cv::drawContours(contours_img, contours, -1, 255, brush_size, 8, hierarchy);
+
+  auto edge_points = E::compute_edge_points(grads, contours_img);
+  auto links = E::chain_edge_points(edge_points, grads);
+  // Used for finding initial chain points
+  const float hi_thresh = 1.0f;
+  // Used for linking chain successors
+  const float lo_thresh = 0.1f;
+  auto chains = E::thresholds_with_hysteresis(edge_points, links, grads, hi_thresh, lo_thresh);
+
+  cv::namedWindow("source");
+  cv::imshow("source", source);
+
+  cv::namedWindow("thresh");
+  cv::imshow("thresh", thresh);
 
   cv::namedWindow("contours");
   cv::imshow("contours", contours_img);
-
-  /*cv::namedWindow("source");
-  cv::imshow("source", source);
-
-  cv::namedWindow("mask");
-  cv::imshow("mask", mask);
 
   cv::namedWindow("edge_points");
   cv::imshow("edge_points", draw_edge_points(source, edge_points));
 
   cv::namedWindow("chains");
-  cv::imshow("chains", draw_chains(source, chains));*/
+  cv::imshow("chains", draw_chains(source, chains));
 
   cv::waitKey();
 
