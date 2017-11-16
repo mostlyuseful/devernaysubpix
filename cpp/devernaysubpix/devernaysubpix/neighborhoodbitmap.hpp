@@ -4,6 +4,7 @@
 
 #include <cv.hpp>
 #include <memory>
+#include <cstdint>
 
 namespace EdgeDetector {
 
@@ -23,7 +24,7 @@ class NeighborhoodBitmap {
     void set(CurvePoint const &p) {
         int const row = static_cast<int>(p.y);
         int const col = static_cast<int>(p.x);
-        auto const idx = this->indexForLocation(row, col);
+        int const idx = this->indexForLocation(row, col);
         if (!this->isValidIndex(idx)) {
             throw std::runtime_error("Not a valid location");
         }
@@ -40,7 +41,7 @@ class NeighborhoodBitmap {
      * @return True if bitmap contains point for (row,col), false if not
      */
     bool has(int row, int col) const {
-        auto const idx = this->indexForLocation(row,col);
+        int const idx = this->indexForLocation(row,col);
         if (!this->isValidIndex(idx)) {
             return false;
         }
@@ -55,7 +56,7 @@ class NeighborhoodBitmap {
      * @throw std::runtime_error if location not stored. Test by using has(...) before.
      */
     CurvePoint get(int row, int col) const {
-        auto const idx = this->indexForLocation(row, col);
+        int const idx = this->indexForLocation(row, col);
         if (!this->isValidIndex(idx)) {
             throw std::runtime_error("Not a valid location");
         }
@@ -73,7 +74,7 @@ class NeighborhoodBitmap {
   protected:
     unsigned int m_rows;
     unsigned int m_columns;
-    std::vector<std::unique_ptr<CurvePoint>> m_bitmap;
+    std::vector<std::unique_ptr<CurvePoint> > m_bitmap;
 };
 
 } // namespace EdgeDetector

@@ -12,9 +12,9 @@ namespace EdgeDetector {
  * while linking
  */
 struct hashCurvePointLocationOnly {
-    std::size_t inline operator()(CurvePoint const &p) const noexcept {
-        std::size_t const h1 = std::hash<float>{}(p.x);
-        std::size_t const h2 = std::hash<float>{}(p.y);
+    std::size_t inline operator()(CurvePoint const &p) const {
+        std::size_t const h1 = std::hash<float>()(p.x);
+        std::size_t const h2 = std::hash<float>()(p.y);
         std::size_t const combinedHash = h1 ^ (h2 << 1);
         return combinedHash;
     }
@@ -25,24 +25,22 @@ struct hashCurvePointLocationOnly {
  * only the x and y members, ignoring valid
  */
 struct equalsCurvePointLocationOnly {
-    bool inline operator()(CurvePoint const &p1, CurvePoint const &p2) const
-        noexcept {
+    bool inline operator()(CurvePoint const &p1, CurvePoint const &p2) const {
         return (p1.x == p2.x) && (p1.y == p2.y);
     }
 };
 
-using OneSidedMap =
-    std::unordered_map<CurvePoint, CurvePoint,
-                       hashCurvePointLocationOnly,
-                       equalsCurvePointLocationOnly>;
+typedef std::unordered_map<CurvePoint, CurvePoint,
+                           hashCurvePointLocationOnly,
+                           equalsCurvePointLocationOnly> OneSidedMap;
 
-using Link = std::pair<CurvePoint, CurvePoint>;
+typedef std::pair<CurvePoint, CurvePoint> Link;
 
 class LinkMap {
   public:
     LinkMap(){}
     bool has(CurvePoint const &left, CurvePoint const &right) const {
-        auto it = m_leftRight.find(left);
+        OneSidedMap::const_iterator it = m_leftRight.find(left);
         if (it == m_leftRight.cend()) {
             return false;
         }
@@ -55,11 +53,11 @@ class LinkMap {
         return m_rightLeft.find(p) != m_leftRight.cend();
     }
     Link getByLeft(CurvePoint const &p) const {
-        auto it = m_leftRight.find(p);
+        OneSidedMap::const_iterator it = m_leftRight.find(p);
         return std::make_pair(it->first, it->second);
     }
     Link getByRight(CurvePoint const &p) const {
-        auto it = m_rightLeft.find(p);
+        OneSidedMap::const_iterator it = m_rightLeft.find(p);
         return std::make_pair(it->second, it->first);
     }
     void link(CurvePoint const &left, CurvePoint const &right) {
@@ -85,14 +83,14 @@ class LinkMap {
         if (!this->hasLeft(left)) {
             return;
         }
-        auto const pair = this->getByLeft(left);
+        Link const pair = this->getByLeft(left);
         this->unlink(pair);
     }
     void unlinkByRight(const EdgeDetector::CurvePoint &right) {
         if (!this->hasRight(right)) {
             return;
         }
-        auto const pair = this->getByRight(right);
+        Link const pair = this->getByRight(right);
         this->unlink(pair);
     }
     void replace(CurvePoint const &left, CurvePoint const &right) {
