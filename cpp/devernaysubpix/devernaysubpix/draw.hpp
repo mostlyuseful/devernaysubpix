@@ -39,8 +39,8 @@ void inline pixel_aa(cv::Mat &canvas, cv::Point2d const location,
                  ++rounded_y) {
             double const percent_y = 1 - std::abs(location.y - rounded_y);
             double const percent = percent_x * percent_y;
-            cv::Vec3b const bg_color = canvas.at<cv::Vec3b>(location);
-            cv::Vec3b const blended = blend(color, bg_color, percent);
+            auto const bg_color = canvas.at<cv::Vec3b>(location);
+            auto const blended = blend(color, bg_color, percent);
             canvas.at<cv::Vec3b>(rounded_y, rounded_x) = blended;
         }
     }

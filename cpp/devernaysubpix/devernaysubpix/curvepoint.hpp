@@ -29,7 +29,7 @@ struct CurvePoint {
      * @return The distance between both points
      */
     float inline distance(CurvePoint const &other) const {
-        return hypotf(other.x - x, other.y - y);
+        return std::hypotf(other.x - x, other.y - y);
     }
 
     CurvePoint inline operator-(CurvePoint const &rhs) const {

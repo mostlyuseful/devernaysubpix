@@ -10,36 +10,31 @@ cv::Mat draw_edge_points(cv::Mat const &background_image,
                          std::vector<EdgeDetector::CurvePoint> const &edges) {
   cv::Mat canvas;
   cv::cvtColor(background_image, canvas, CV_GRAY2BGR);
-  for(std::vector<EdgeDetector::CurvePoint>::const_iterator it=edges.cbegin();it<edges.cend();++it) {
-      Draw::pixel_aa(canvas, cv::Point2f(it->x, it->y), cv::Vec3b(0, 0, 255));
+  for (auto const &e : edges) {
+    Draw::pixel_aa(canvas, cv::Point2f(e.x, e.y), {0, 0, 255});
   }
   return canvas;
 }
 
 cv::Mat draw_chains(cv::Mat const &background_image,
                     EdgeDetector::Chains const &chains) {
-  std::vector<cv::Vec3b> colors;
-  colors.push_back(cv::Vec3b(255,0,0));
-  colors.push_back(cv::Vec3b(0, 255, 0));
-  colors.push_back(cv::Vec3b(0, 0, 255));
-  colors.push_back(cv::Vec3b(255, 255, 0));
-  colors.push_back(cv::Vec3b(0, 255, 255));
-  colors.push_back(cv::Vec3b(255, 0, 255));
+
+  std::vector<cv::Vec3b> const colors = {{255, 0, 0},   {0, 255, 0},
+                                         {0, 0, 255},   {255, 255, 0},
+                                         {0, 255, 255}, {255, 0, 255}};
   size_t color_idx = 0;
 
   cv::Mat canvas;
   cv::cvtColor(background_image, canvas, CV_GRAY2BGR);
-  for(EdgeDetector::Chains::const_iterator chain=chains.cbegin();chain<chains.cend();++chain){
-      cv::Vec3b const &color = colors.at(color_idx);
-      color_idx = (color_idx + 1) % colors.size();
-      for (size_t i = 1; i < chain->size(); ++i) {
-        EdgeDetector::CurvePoint const pt1 = chain->at(i - 1);
-        EdgeDetector::CurvePoint const pt2 = chain->at(i);
-        cv::arrowedLine(canvas,
-                        cv::Point2f(pt1.x, pt1.y),
-                        cv::Point2f(pt2.x, pt2.y),
-                        color, 1, CV_AA);
-      }
+  for (auto const &chain : chains) {
+    auto const &color = colors.at(color_idx);
+    color_idx = (color_idx + 1) % colors.size();
+    for (size_t i = 1; i < chain.size(); ++i) {
+      auto const pt1 = chain.at(i - 1);
+      auto const pt2 = chain.at(i);
+      cv::arrowedLine(canvas, cv::Point2f(pt1.x, pt1.y),
+                      cv::Point2f(pt2.x, pt2.y), color, 1, CV_AA);
+    }
   }
   return canvas;
 }
@@ -60,7 +55,7 @@ int main(int argc, char *argv[]) {
   namespace E = EdgeDetector;
 
   cv::Mat source = generateSmoothedCircle();
-  E::PartialImageGradients const grads = E::image_gradient(source, 1.0);
+  auto const grads = E::image_gradient(source, 1.0);
 
   // Build mask image from thresholded source image:
   // Separate blurred white circle from dark background via automatic
@@ -69,7 +64,7 @@ int main(int argc, char *argv[]) {
   cv::Mat thresh;
   cv::threshold(source, thresh, 128, 255, cv::ThresholdTypes::THRESH_BINARY | cv::ThresholdTypes::THRESH_OTSU);
 
-  std::vector<std::vector<cv::Point> > contours;
+  std::vector<std::vector<cv::Point>> contours;
   std::vector<cv::Vec4i> hierarchy;
   // Clone to preserve original image
   cv::findContours(thresh.clone(), contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_NONE);
@@ -80,13 +75,13 @@ int main(int argc, char *argv[]) {
   const int brush_size = 5;
   cv::drawContours(contours_img, contours, -1, 255, brush_size, 8, hierarchy);
 
-  std::vector<E::CurvePoint> edge_points = E::compute_edge_points(grads, contours_img);
-  E::LinkMap links = E::chain_edge_points(edge_points, grads);
+  auto edge_points = E::compute_edge_points(grads, contours_img);
+  auto links = E::chain_edge_points(edge_points, grads);
   // Used for finding initial chain points
   const float hi_thresh = 1.0f;
   // Used for linking chain successors
   const float lo_thresh = 0.1f;
-  E::Chains chains = E::thresholds_with_hysteresis(edge_points, links, grads, hi_thresh, lo_thresh);
+  auto chains = E::thresholds_with_hysteresis(edge_points, links, grads, hi_thresh, lo_thresh);
 
   cv::namedWindow("source");
   cv::imshow("source", source);
