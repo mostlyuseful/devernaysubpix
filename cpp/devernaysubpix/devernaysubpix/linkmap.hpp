@@ -50,7 +50,7 @@ class LinkMap {
         return m_leftRight.find(p) != m_leftRight.cend();
     }
     bool hasRight(CurvePoint const &p) const {
-        return m_rightLeft.find(p) != m_leftRight.cend();
+        return m_rightLeft.find(p) != m_rightLeft.cend();
     }
     Link getByLeft(CurvePoint const &p) const {
         OneSidedMap::const_iterator it = m_leftRight.find(p);
