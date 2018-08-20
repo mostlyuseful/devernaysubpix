@@ -5,7 +5,7 @@ using namespace std;
 namespace E = EdgeDetector;
 
 void DrawEdges(cv::Mat &rgb, cv::Mat &gray,
-               const std::vector<E::CurvePoint> &edge_points,
+               const std::vector<std::vector<E::CurvePoint>> &chains,
                const cv::Scalar &color, const int scaleFactor) {
     cv::Mat gray2;
 
@@ -13,10 +13,12 @@ void DrawEdges(cv::Mat &rgb, cv::Mat &gray,
     cv::cvtColor(gray2, rgb, CV_GRAY2BGR);
 
     cv::Point2f offset(scaleFactor / 2. - 0.5, scaleFactor / 2. - 0.5);
-    for (size_t i = 0; i < edge_points.size(); i++) {
-        cv::Point2f b =
-            scaleFactor * Point2f(edge_points[i].x, edge_points[i].y) + offset;
-        cv::line(rgb, b, b, color);
+    for (size_t i = 0; i < chains.size(); i++) {
+        for (size_t j = 0; j < chains[i].size(); j++) {
+            cv::Point2f b =
+                scaleFactor * Point2f(chains[i][j].x, chains[i][j].y) + offset;
+            cv::line(rgb, b, b, color);
+        }
     }
 }
 
@@ -58,6 +60,8 @@ int main(int argc, char *argv[]) {
     auto grads = E::image_gradient(image, alpha);
     auto mask = grads.threshold(low);
     auto edges = E::compute_edge_points(grads, mask);
+    auto links = E::chain_edge_points(edges, grads);
+    auto chains = E::thresholds_with_hysteresis(edges, links, grads, high, low);
     int64 t1 = getCPUTickCount();
     cout << "execution time is " << (t1 - t0) / (double)getTickFrequency()
          << " seconds" << endl;
@@ -78,7 +82,7 @@ int main(int argc, char *argv[]) {
     }
 
     cv::Mat rgb;
-    DrawEdges(rgb, image, edges, cv::Scalar(0, 0, 255), 10);
+    DrawEdges(rgb, image, chains, cv::Scalar(0, 0, 255), 10);
 
     cv::imwrite(outputFile, rgb);
 
